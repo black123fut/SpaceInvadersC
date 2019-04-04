@@ -12,7 +12,7 @@ find_package(SDL2_IMAGE)
 find_package(SDL2TTF)
 find_package(SDL2Mixer)
 
-add_executable(SpaceInvaders main.c DataStructures/LinkedList.c DataStructures/LinkedList.h Sprites/Sprite.h)
+add_executable(SpaceInvaders main.c DataStructures/LinkedList.c DataStructures/LinkedList.h Sprites/Sprite.h DataStructures/Utilities.h DataStructures/Utilities.c)
 
 include_directories(${SDL2_INCLUDE_DIR} ${SDL2TTF_INCLUDE_DIR} ${SDL2_IMAGE_INCLUDE_DIR} ${SDL2Mixer_INCLUDE_DIR})
 target_link_libraries(${PROJECT_NAME} ${SDL2_LIBRARY} ${SDL2TTF_LIBRARY} ${SDL2_IMAGE_LIBRARY} ${SDL2Mixer_LIBRARY} )

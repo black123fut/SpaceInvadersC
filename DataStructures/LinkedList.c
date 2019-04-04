@@ -16,7 +16,7 @@ void createList(struct LinkedList *list, int elementSize, freeFunction fn) {
 }
 
 void add(struct LinkedList *list, void *data) {
-    Node *tmp = malloc(sizeof(Node));
+    Node *tmp = (Node *) malloc(sizeof(Node));
     tmp->data = malloc(sizeof(list->elementSize));
     tmp->next = NULL;
 
