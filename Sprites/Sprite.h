@@ -2,6 +2,7 @@
 #define SPACEINVADERS_SPRITE_H
 
 #include "SDL2/SDL_image.h"
+#include "../DataStructures/LinkedList.h"
 
 typedef struct _Player {
     int x;
@@ -10,16 +11,20 @@ typedef struct _Player {
     int height;
     int currentSprite;
     int time;
+    int cooldown;
 
     SDL_Texture *sheet;
 } Player;
 
-typedef struct _Bullet {
+struct Bullet {
+    int x;
     int y;
     int width;
     int height;
-    SDL_Texture *img;
-} Bullet;
+    int currentSprite;
+    int direction;
+    SDL_Texture *sheet;
+};
 
 struct Alien {
     int x;
@@ -31,5 +36,11 @@ struct Alien {
     int currentSprite;
     SDL_Texture *sheet;
 } ;
+
+void changeSpriteShip(Player *pl, int max, int dir);
+
+void changeSpriteAliens(struct LinkedList *aliens, int *time);
+
+void changeSpriteBullets(struct LinkedList *bullets, const int *time);
 
 #endif //SPACEINVADERS_SPRITE_H

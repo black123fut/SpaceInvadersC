@@ -7,6 +7,10 @@ void free_alien(void *data) {
     free(*(struct Alien **)data);
 }
 
+void free_bullet(void *data) {
+    free(*(struct Bullet **) data);
+}
+
 void setAttributes(struct Alien *alien, int column, int index, int row) {
     alien->y = 75 + row * 32;
 
@@ -53,7 +57,6 @@ void getAliens(SDL_Renderer *renderer, struct LinkedList *aliens) {
         SDL_FreeSurface(sheet);
         add(aliens, &alien);
 
-        printf("column: %i \n", column);
         column++;
         index++;
         if (column == 11) {
@@ -64,30 +67,15 @@ void getAliens(SDL_Renderer *renderer, struct LinkedList *aliens) {
     printf("LLEgue");
 }
 
-void changeSpriteAliens(struct LinkedList *aliens, int *time) {
-    *time = *time + 1;
-    int timeaux = *time;
-    if (timeaux > 10) {
-        *time = 0;
-    }
-    if (timeaux % 10 == 0) {
-        for (int i = 0; i < aliens->size; ++i) {
-            struct Alien *tmp = *(struct Alien **) get(aliens, i);
-            tmp->currentSprite = ++tmp->currentSprite % 2;
-        }
-    }
+bool checkCollision(struct Bullet *bullet, struct Alien* alien) {
+    return
+        (bullet->x) < (alien->x + alien->width) &&
+        (bullet->y) < (alien->y + alien->height) &&
+        (bullet->x + bullet->width) > (alien->x) &&
+        (bullet->y + bullet->height) > (alien->y);
 }
 
-void changeSpriteShip(Player *pl, int max, int dir) {
-    pl->time++;
-    if (pl->time > 5) {
-        pl->time = 0;
-    }
-    if ((pl->currentSprite != max) && (pl->time % 5 == 0)) {
-        pl->currentSprite += dir;
-        pl->time = 0;
-    }
-}
+
 
 SDL_Renderer *init() {
     int width = 900;
@@ -130,6 +118,28 @@ SDL_Renderer *init() {
     };
 
     return renderer;
+}
+
+void addBullet(struct LinkedList *bullets, Player *pl, SDL_Renderer * renderer, struct Alien *alien, char *path) {
+    struct Bullet *bullet = (struct Bullet *) malloc(sizeof(struct Bullet));
+    if (alien == NULL) {
+        bullet->y = pl->y + 10;
+        bullet->x = pl->x + 20;
+        bullet->width = 15;
+        bullet->height = 15;
+        bullet->direction = -1;
+    }
+    else {
+        bullet->y = alien->y - 5;
+        bullet->x = alien->x + 3;
+        bullet->width = 10;
+        bullet->height = 10;
+        bullet->direction = 1;
+    }
+    SDL_Surface *sheet = loadImage(path);
+    bullet->sheet = SDL_CreateTextureFromSurface(renderer, sheet);
+    SDL_FreeSurface(sheet);
+    add(bullets , &bullet);
 }
 
 SDL_Surface *loadImage(char* path) {
