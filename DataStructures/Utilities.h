@@ -19,7 +19,9 @@ SDL_Surface *getAlienImage(int row);
 
 void setAttributes(struct Alien *alien, int column, int index, int row);
 
-void addBullet(struct LinkedList *bullets, Player *pl, SDL_Renderer * renderer, struct Alien *alien, char *path);
+void addBulletPlayer(struct LinkedList *bullets, Player *pl, SDL_Renderer * renderer);
+
+void addBulletAlien(struct LinkedList *bullets, struct Alien *alien, SDL_Renderer * renderer);
 
 void free_alien(void *data);
 

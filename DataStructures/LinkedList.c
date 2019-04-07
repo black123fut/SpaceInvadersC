@@ -9,7 +9,6 @@
 void createList(struct LinkedList *list, int elementSize, freeFunction fn) {
     assert(elementSize > 0);
     list->head = NULL;
-    list->tail = NULL;
     list->elementSize = elementSize;
     list->freeFn = fn;
     list->size = 0;
@@ -24,40 +23,53 @@ void add(struct LinkedList *list, void *data) {
 
     if (list->size == 0) {
         list->head = tmp;
-        list->tail = tmp;
+
     }
     else {
-        list->tail->next = tmp;
-        list->tail = tmp;
+        Node *sub = list->head;
+        while (sub->next != NULL) {
+            sub = sub->next;
+        }
+        sub->next = tmp;
     }
     list->size++;
 }
 
-void delete_node(struct LinkedList *list, int index) {
-    if (index < list->size) {
-        if (index == 0) {
-            Node *tmp = list->head;
-            list->head = list->head->next;
-            free(tmp->data);
-            free(tmp);
+void delete_node(struct LinkedList *list, int index, char *tag) {
+    int counter = 0;
+    Node *tmp = list->head;
+
+    if (list->head == NULL) {
+        return;
+    }
+    if (index == 0) {
+        list->head = list->head->next;
+        if(list->freeFn) {
+            list->freeFn(tmp->data);
+        }
+        free(tmp->data);
+        free(tmp);
+        list->size--;
+        return;
+    }
+    counter++;
+    while(tmp->next != NULL) {
+        if (counter == index) {
+
+            Node *tmpp = tmp->next;
+            tmp->next = tmp->next->next;
+            if(list->freeFn) {
+                list->freeFn(tmpp->data);
+            }
+            free(tmpp->data);
+            free(tmpp);
+            list->size--;
+            return;
         }
         else {
-            Node *tmp = list->head;
-            for (int i = 1; i < list->size; ++i) {
-                if (i == index) {
-                    Node *tmp2 = tmp->next;
-                    tmp->next = tmp->next->next;
-                    free(tmp2->data);
-                    free(tmp2);
-                    break;
-                }
-                tmp = tmp->next;
-            }
+            tmp = tmp->next;
+            counter++;
         }
-        list->size--;
-    }
-    else {
-        printf("delete: Index out of range");
     }
 }
 
@@ -74,6 +86,7 @@ void *get(struct LinkedList *list, int index) {
         return NULL;
     }
 }
+
 
 int length(struct LinkedList *list) {
     return list->size;

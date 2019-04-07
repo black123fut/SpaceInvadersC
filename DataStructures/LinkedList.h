@@ -10,7 +10,6 @@ typedef struct Nodes {
 
 struct LinkedList {
     Node *head;
-    Node *tail;
     int size;
     int elementSize;
     freeFunction freeFn;
@@ -18,7 +17,7 @@ struct LinkedList {
 
 void createList(struct LinkedList *list, int elementSize, freeFunction fn);
 void add(struct LinkedList *list, void *data);
-void delete_node(struct LinkedList *list, int index);
+void delete_node(struct LinkedList *list, int index, char *tag);
 void *get(struct LinkedList *list, int index);
 int length(struct LinkedList *list);
 void list_destroy(struct LinkedList *list);

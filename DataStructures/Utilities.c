@@ -115,28 +115,32 @@ SDL_Renderer *init() {
     if (SDL_SetRenderDrawBlendMode(renderer, SDL_BLENDMODE_BLEND) != 0) {
         fprintf(stderr, "SDL_BlendMode failed: %s\n", SDL_GetError());
         exit(1);
-    };
+    }
 
     return renderer;
 }
 
-void addBullet(struct LinkedList *bullets, Player *pl, SDL_Renderer * renderer, struct Alien *alien, char *path) {
+void addBulletPlayer(struct LinkedList *bullets, Player *pl, SDL_Renderer * renderer) {
     struct Bullet *bullet = (struct Bullet *) malloc(sizeof(struct Bullet));
-    if (alien == NULL) {
-        bullet->y = pl->y + 10;
-        bullet->x = pl->x + 20;
-        bullet->width = 15;
-        bullet->height = 15;
-        bullet->direction = -1;
-    }
-    else {
-        bullet->y = alien->y - 5;
-        bullet->x = alien->x + 3;
-        bullet->width = 10;
-        bullet->height = 10;
-        bullet->direction = 1;
-    }
-    SDL_Surface *sheet = loadImage(path);
+    bullet->y = pl->y + 10;
+    bullet->x = pl->x + 20;
+    bullet->width = 15;
+    bullet->height = 15;
+    bullet->direction = -1;
+    SDL_Surface *sheet = loadImage("../../resources/Bullet.png");
+    bullet->sheet = SDL_CreateTextureFromSurface(renderer, sheet);
+    SDL_FreeSurface(sheet);
+    add(bullets , &bullet);
+}
+
+void addBulletAlien(struct LinkedList *bullets, struct Alien *alien, SDL_Renderer * renderer) {
+    struct Bullet *bullet = (struct Bullet *) malloc(sizeof(struct Bullet));
+    bullet->y = alien->y - 5;
+    bullet->x = alien->x + 15;
+    bullet->width = 10;
+    bullet->height = 10;
+    bullet->direction = 1;
+    SDL_Surface *sheet = loadImage("../../resources/AlienBullet.png");
     bullet->sheet = SDL_CreateTextureFromSurface(renderer, sheet);
     SDL_FreeSurface(sheet);
     add(bullets , &bullet);
