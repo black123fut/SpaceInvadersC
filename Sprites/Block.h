@@ -24,7 +24,6 @@ void createBlock(struct Block *block, int xPos);
 void generateShields(struct LinkedList *shields);
 bool collision(struct SDL_Rect *rect, struct Bullet *bullet);
 void searchCollision(struct LinkedList *bullets, struct LinkedList *shields);
-void destroyBullets(int size, struct LinkedList *bullets, struct Block *block, int j);
 void deleteRect(struct Block *block, int i, int j);
 
 #endif //SPACEINVADERS_BLOCK_H

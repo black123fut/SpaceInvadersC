@@ -53,36 +53,21 @@ bool collision(struct SDL_Rect *rect, struct Bullet *bullet) {
             (bullet->y + bullet->height) > (rect->y);
 }
 
-void destroyBullets(int size, struct LinkedList *bullets, struct Block *block, int j) {
-    for (int j = 0; j< block->shield->size; ++j) {
-        struct SDL_Rect *rect = *(struct SDL_Rect **) get(block->shield, j);
-
-        for (int k = 0; k < bullets->size; ++k) {
-            struct Bullet *tmpbullet = *(struct Bullet **) get(bullets, k);
-            if (collision(rect, tmpbullet)) {
-                deleteRect(block, rect->i, rect->j);
-                delete_node(bullets, k, "");
-                delete_node(block->shield, j, "");
-            }
-        }
-    }
-}
-
 void searchCollision(struct LinkedList *bullets, struct LinkedList *shields) {
     if (bullets->size > 0) {
-        for (int i = 0; i < shields->size; ++i) {
+        for (int i = 0; i < length(shields); ++i) {
             struct Block *tmp = *(struct Block **) get(shields, i);
 
-            for (int j = 0; j< tmp->shield->size; ++j) {
-                struct SDL_Rect *rect = *(struct SDL_Rect **) get(tmp->shield, j);
+            for (int j = 0; j< length(tmp->shield); ++j) {
+                struct SpaceRect *srect = *(struct SpaceRect **) get(tmp->shield, j);
 
-                for (int k = 0; k < bullets->size; ++k) {
+                for (int k = 0; k < length(bullets); ++k) {
                     struct Bullet *tmpbullet = *(struct Bullet **) get(bullets, k);
-                    if (collision(rect, tmpbullet)) {
-                        deleteRect(tmp, rect->i, rect->j);
-                        delete_node(bullets, k, "");
-                        delete_node(tmp->shield, j, "");
-
+                    if (collision(srect->rect, tmpbullet)) {
+                        deleteRect(tmp, srect->i, srect->j);
+                        delete_node(tmp->shield, j, "Rect");
+                        delete_node(bullets, k, "Bullet");
+                        break;
                     }
                 }
             }
