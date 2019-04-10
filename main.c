@@ -9,8 +9,11 @@
 #include "Sprites/Block.h"
 #include "Sprites/Sprite.h"
 #include "DataStructures/Utilities.h"
+#include "JsonBuilder/JsonConstructor.h"
+
 
 int globalTime = 0, border = 10, speed = 1;
+bool servidor = true;
 
 void draw(SDL_Renderer *renderer, Player *pl,
                     struct LinkedList *aliens,
@@ -29,7 +32,8 @@ void draw(SDL_Renderer *renderer, Player *pl,
     SDL_RenderCopyEx(renderer, pl->sheet, &srcRect, &rect, 0, NULL, 0);
 
     //Los Aliens
-    changeSpriteAliens(aliens, &globalTime);
+    if (servidor)
+        changeSpriteAliens(aliens, &globalTime);
     for (int i = 0; i < aliens->size; ++i) {
         struct Alien *tmp = *(struct Alien **) get(aliens, i);
         SDL_Rect alRect = { tmp->width * tmp->currentSprite, 0, tmp->width, tmp->height};
@@ -39,7 +43,8 @@ void draw(SDL_Renderer *renderer, Player *pl,
 
     //Las Balas del alien y jugador
     if (bullets->size > 0) {
-        changeSpriteBullets(bullets, &globalTime);
+        if (servidor)
+            changeSpriteBullets(bullets, &globalTime);
         for (int j = 0; j < length(bullets); ++j) {
             struct Bullet *tmp = *(struct Bullet **) get(bullets, j);
             if (tmp != NULL) {
@@ -54,14 +59,6 @@ void draw(SDL_Renderer *renderer, Player *pl,
 
     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
 
-//    for (int k = 0; k < 4; ++k) {
-//        struct Block *tmp = *(struct Block **) get(shields, k);
-//
-//        for (int i = 0; i < length(tmp->shield); ++i) {
-//            SDL_RenderFillRect(renderer, *(struct SDL_Rect **) get(tmp->shield, i));
-//        }
-//    }
-
     //Dibuja los bloques del escudo
     for (int l = 0; l < shields->size; ++l) {
         struct Block *tmp = *(struct Block **) get(shields, l);
@@ -70,32 +67,21 @@ void draw(SDL_Renderer *renderer, Player *pl,
         for (int i = 0; i < 14; ++i) {
             for (int j = 0; j < 16; ++j) {
                 if (tmp->state[i][j] != 0) {
-                    SDL_Rect rectM = {xPos + j * 5, 530 + i * 5, 5, 5, i, j};
+                    SDL_Rect rectM = {xPos + j * 5, 530 + i * 5, 5, 5};
                     SDL_RenderFillRect(renderer, &rectM);
                 }
             }
         }
     }
 
-//    for (int k = 0; k < 4; ++k) {
-//        struct Block *tmp = *(struct Block **) get(shields, k);
-//
-//        for (int i = 0; i < tmp->shield->size; ++i) {
-//            SDL_RenderFillRect(renderer, *(struct SDL_Rect **) get(tmp->shield, i));
-//        }
-//    }
-
-//    SDL_Rect rect5 = { 20, 20, 5, 5 };
-//    SDL_RenderFillRect(renderer, &rect5);
-//
-//    SDL_Rect rect6 = { 200, 20, 3, 3 };
-//    SDL_RenderFillRect(renderer, &rect6);
-
     SDL_RenderPresent(renderer);
 }
 
-void update(Player *pl, struct LinkedList *aliens, struct LinkedList *bullets, struct LinkedList *shields,
-        SDL_Renderer *renderer) {
+void updateServer(Player *pl, struct LinkedList *aliens,
+                  struct LinkedList *bullets,
+                  struct LinkedList *shields,
+                  SDL_Renderer *renderer) {
+
     int goDown = 0;
 
     if (pl->cooldown > 0) {
@@ -132,8 +118,8 @@ void update(Player *pl, struct LinkedList *aliens, struct LinkedList *bullets, s
     for (int k = 0; k < length(bullets); ++k) {
         struct Bullet *tmp = *(struct Bullet **) get(bullets, k);
         tmp->y += 15 * tmp->direction;
+
         if (tmp->y <= 0 || tmp->y >= 730) {
-//            free(*(struct SDL_Texture **) tmp->sheet);
             delete_node(bullets, k, "Alien Bullet");
         }
     }
@@ -228,10 +214,21 @@ int main(int argc, char* args[]) {
     createList(shields, sizeof(struct Block *), free_block);
     generateShields(shields);
 
+    addBulletPlayer(bullets, &pl, renderer);
+
+    json_object *jobj = json_object_new_object();
+    //aliensJson(aliens, jobj);
+    //blocksJson(shields, jobj);
+    //bulletsJson(bullets, jobj);
+
+    playerJson(&pl, jobj);
+    speedJson(speed, jobj);
+
     int done = 0;
 
     while(done != 1) {
-        update(&pl, aliens, bullets, shields, renderer);
+
+        updateServer(&pl, aliens, bullets, shields, renderer);
         draw(renderer, &pl, aliens, bullets, shields);
         done = eventPoll(&pl, 0, bullets, renderer);
         SDL_Delay(50);
@@ -251,19 +248,30 @@ int main(int argc, char* args[]) {
 }
 
 int list_example(int argc, char* args[]) {
-    struct LinkedList list;
-    createList(&list, sizeof(int), NULL);
+    struct LinkedList *list = (struct LinkedList *) malloc(sizeof(struct LinkedList));
+    createList(list, sizeof(int), NULL);
 
     for (int i = 0; i < 6; ++i) {
-        add(&list, &i);
+        add(list, &i);
     }
 
     //delete_node(&list, 4);
 
-    for (int j = 0; j < length(&list); ++j) {
-        printf("getting: %i\n", *(int *) get(&list, j));
+    for (int j = 0; j < length(list); ++j) {
+        printf("getting: %i\n", *(int *) get(list, j));
     }
 
-    list_destroy(&list);
+    clear_list(list);
+
+    for (int i = 4; i < 8; ++i) {
+        add(list, &i);
+    }
+
+    for (int j = 0; j < length(list); ++j) {
+        printf("getting: %i\n", *(int *) get(list, j));
+    }
+
+    list_destroy(list);
+
     return 0;
 }

@@ -92,6 +92,13 @@ int length(struct LinkedList *list) {
     return list->size;
 }
 
+void clear_list(struct LinkedList *list) {
+    int size = length(list);
+    for (int i = 0; i < size; ++i) {
+        delete_node(list, 0, "");
+    }
+}
+
 void list_destroy(struct LinkedList *list)
 {
     Node *current;

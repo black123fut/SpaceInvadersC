@@ -20,6 +20,7 @@ void add(struct LinkedList *list, void *data);
 void delete_node(struct LinkedList *list, int index, char *tag);
 void *get(struct LinkedList *list, int index);
 int length(struct LinkedList *list);
+void clear_list(struct LinkedList *list);
 void list_destroy(struct LinkedList *list);
 
 

@@ -75,8 +75,6 @@ bool checkCollision(struct Bullet *bullet, struct Alien* alien) {
         (bullet->y + bullet->height) > (alien->y);
 }
 
-
-
 SDL_Renderer *init() {
     int width = 900;
     int height = 720;
