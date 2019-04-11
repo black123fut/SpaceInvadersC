@@ -15,7 +15,7 @@ void playerJson(Player *pl, json_object *jobj) {
     json_object_object_add(jPl, "cooldown", json_object_new_int(pl->cooldown));
 
     json_object_object_add(jobj,"Player", jPl);
-    printf ("Lista de player: %s", json_object_to_json_string(jobj) );
+
 }
 
 void aliensJson(struct LinkedList *aliens, json_object *jobj) {
@@ -38,7 +38,6 @@ void aliensJson(struct LinkedList *aliens, json_object *jobj) {
 
     json_object_object_add(jobj,"Aliens", jarray);
 
-    printf ("Lista de aliens: %s", json_object_to_json_string(jobj) );
 }
 
 void blocksJson(struct LinkedList *shields, json_object *jobj) {
@@ -75,7 +74,6 @@ void blocksJson(struct LinkedList *shields, json_object *jobj) {
     }
     json_object_object_add(jobj, "Shields", jShieldsArray);
 
-    printf ("Lista de bloques: %s", json_object_to_json_string(jobj) );
 }
 
 void bulletsJson(struct LinkedList *bullets, json_object *jobj) {

@@ -45,6 +45,14 @@ SDL_Surface *getAlienImage(int row) {
     }
 }
 
+SDL_Surface *getBulletImage(int dir) {
+    if (dir == -1) {
+        return loadImage("../../resources/Bullet.png");
+    }else {
+        return loadImage("../../resources/AlienBullet.png");
+    }
+}
+
 void getAliens(SDL_Renderer *renderer, struct LinkedList *aliens) {
     int row = 0, column = 0, index = 0;
     createList(aliens, sizeof(struct Alien *), free_alien);
@@ -69,11 +77,13 @@ void getAliens(SDL_Renderer *renderer, struct LinkedList *aliens) {
 
 bool checkCollision(struct Bullet *bullet, struct Alien* alien) {
     return
-        (bullet->x) < (alien->x + alien->width) &&
-        (bullet->y) < (alien->y + alien->height) &&
-        (bullet->x + bullet->width) > (alien->x) &&
-        (bullet->y + bullet->height) > (alien->y);
+            (bullet->x) < (alien->x + alien->width) &&
+            (bullet->y) < (alien->y + alien->height) &&
+            (bullet->x + bullet->width) > (alien->x) &&
+            (bullet->y + bullet->height) > (alien->y);
 }
+
+
 
 SDL_Renderer *init() {
     int width = 900;
@@ -152,4 +162,3 @@ SDL_Surface *loadImage(char* path) {
     }
     return sheet;
 }
-
