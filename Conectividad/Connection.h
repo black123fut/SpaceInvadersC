@@ -5,7 +5,15 @@
 #include <SDL_render.h>
 #include <json-c/json_object.h>
 #include <zconf.h>
+#include <fcntl.h>
+#include <arpa/inet.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netinet/in.h>
+#include <sys/time.h>
+
 #include "Ssocket.h"
+#include <pthread.h>
 #include "../JsonBuilder/JsonConstructor.h"
 
 typedef void (* updateFunction)(Player *pl, struct LinkedList *aliens,
@@ -24,23 +32,46 @@ typedef void (* drawFunction)(SDL_Renderer *renderer, Player *pl,
                               struct LinkedList *shields,
                               SDL_Texture* typeText);
 
-int connect_server(updateFunction updateServer,
-                   updateFunction updateClient,
-                    eventPollFunction eventPoll,
-                    drawFunction draw,
-                    Player *pl, int speed,
-                    struct LinkedList *aliens,
-                    struct LinkedList *bullets,
-                    struct LinkedList *shields,
-                    SDL_Renderer *renderer);
+struct client_info {
+    int sockno;
+    char ip[INET_ADDRSTRLEN];
+};
 
-int connect_client(updateFunction updateClient,
-                   eventPollFunction eventPoll,
-                   drawFunction draw,
-                   Player *pl, int speed,
-                   struct LinkedList *aliens,
-                   struct LinkedList *bullets,
-                   struct LinkedList *shields,
-                   SDL_Renderer *renderer);
+//struct server_functions {
+//    updateFunction updateServer;
+//    updateFunction updateClient;
+//    eventPollFunction eventPoll;
+//    drawFunction draw;
+//    Player *pl;
+//    int speed;
+//    struct LinkedList *aliens;
+//    struct LinkedList *bullets;
+//    struct LinkedList *shields;
+//    SDL_Renderer *renderer;
+//};
+
+//void *runGame();
+
+//void *sendtoall(void *sock);
+//
+//int connect_server(updateFunction updateServer,
+//                   updateFunction updateClient,
+//                    eventPollFunction eventPoll,
+//                    drawFunction draw,
+//                    Player *pl, int speed,
+//                    struct LinkedList *aliens,
+//                    struct LinkedList *bullets,
+//                    struct LinkedList *shields,
+//                    SDL_Renderer *renderer);
+
+int connect_client_player(updateFunction updateClient,
+                          eventPollFunction eventPoll,
+                          drawFunction draw,
+                          Player *pl, int speed,
+                          struct LinkedList *aliens,
+                          struct LinkedList *bullets,
+                          struct LinkedList *shields,
+                          SDL_Renderer *renderer,
+                          int isObserver);
 
 #endif //SPACEINVADERS_CONNECTION_H

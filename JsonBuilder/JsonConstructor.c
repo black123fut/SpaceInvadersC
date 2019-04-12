@@ -1,5 +1,9 @@
 #include "JsonConstructor.h"
 
+void typeClient(int type, json_object *jobj) {
+    json_object_object_add(jobj,"Client", json_object_new_int(type));
+}
+
 void speedJson(int speed, json_object *jobj) {
     json_object_object_add(jobj,"GlobalSpeed", json_object_new_int(speed));
 }

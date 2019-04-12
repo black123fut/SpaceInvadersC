@@ -9,6 +9,7 @@
 #include <jmorecfg.h>
 #include <json-c/json.h>
 
+void typeClient(int type, json_object *jobj);
 void playerJson(Player *pl, json_object *jobj);
 void bulletsJson(struct LinkedList *blocks, json_object *jobj);
 void blocksJson(struct LinkedList *blocks, json_object *jobj);
