@@ -1,3 +1,4 @@
+#include <SDL_ttf.h>
 #include "Utilities.h"
 
 //width 900
@@ -45,6 +46,14 @@ SDL_Surface *getAlienImage(int row) {
     }
 }
 
+SDL_Surface *getBulletImage(int dir) {
+    if (dir == -1) {
+        return loadImage("../../resources/Bullet.png");
+    }else {
+        return loadImage("../../resources/AlienBullet.png");
+    }
+}
+
 void getAliens(SDL_Renderer *renderer, struct LinkedList *aliens) {
     int row = 0, column = 0, index = 0;
     createList(aliens, sizeof(struct Alien *), free_alien);
@@ -69,10 +78,10 @@ void getAliens(SDL_Renderer *renderer, struct LinkedList *aliens) {
 
 bool checkCollision(struct Bullet *bullet, struct Alien* alien) {
     return
-        (bullet->x) < (alien->x + alien->width) &&
-        (bullet->y) < (alien->y + alien->height) &&
-        (bullet->x + bullet->width) > (alien->x) &&
-        (bullet->y + bullet->height) > (alien->y);
+            (bullet->x) < (alien->x + alien->width) &&
+            (bullet->y) < (alien->y + alien->height) &&
+            (bullet->x + bullet->width) > (alien->x) &&
+            (bullet->y + bullet->height) > (alien->y);
 }
 
 SDL_Renderer *init() {
@@ -99,7 +108,10 @@ SDL_Renderer *init() {
     int imgFlags = IMG_INIT_PNG;
     if( !( IMG_Init( imgFlags ) & imgFlags ) ) {
         printf( "SDL_image could not initialize! SDL_image Error: %s\n", IMG_GetError() );
+    }
 
+    if( TTF_Init() == -1 ) {
+        printf( "SDL_ttf could not initialize! SDL_ttf Error: %s\n", TTF_GetError() );
     }
 
     SDL_Renderer *renderer = SDL_CreateRenderer(
@@ -144,6 +156,17 @@ void addBulletAlien(struct LinkedList *bullets, struct Alien *alien, SDL_Rendere
     add(bullets , &bullet);
 }
 
+SDL_Texture *loadText(SDL_Renderer *renderer, char* text) {
+    TTF_Font* Sans = TTF_OpenFont("../../resources/ostrich-regular.ttf", 24);
+    if( Sans == NULL ) {
+        printf( "Failed to load lazy font! SDL_ttf Error: %s\n", TTF_GetError() );
+    }
+    SDL_Color White = {255, 255, 255};
+    SDL_Surface* surfaceMessage = TTF_RenderText_Solid(Sans, text, White);
+    SDL_Texture* Message = SDL_CreateTextureFromSurface(renderer, surfaceMessage);
+    return Message;
+}
+
 SDL_Surface *loadImage(char* path) {
     SDL_Surface *sheet = IMG_Load(path);
     if(!sheet) {
@@ -152,4 +175,3 @@ SDL_Surface *loadImage(char* path) {
     }
     return sheet;
 }
-

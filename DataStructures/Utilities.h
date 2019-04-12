@@ -17,11 +17,15 @@ void getAliens(SDL_Renderer *renderer, struct LinkedList *aliens);
 
 SDL_Surface *getAlienImage(int row);
 
+SDL_Surface *getBulletImage(int dir);
+
 void setAttributes(struct Alien *alien, int column, int index, int row);
 
 void addBulletPlayer(struct LinkedList *bullets, Player *pl, SDL_Renderer * renderer);
 
 void addBulletAlien(struct LinkedList *bullets, struct Alien *alien, SDL_Renderer * renderer);
+
+SDL_Texture *loadText(SDL_Renderer *renderer, char* text);
 
 void free_alien(void *data);
 

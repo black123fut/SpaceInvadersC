@@ -2,6 +2,11 @@
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
+#include <unistd.h>
+#include <fcntl.h>
+#include <arpa/inet.h>
+#include <sys/socket.h>
+#include <SDL_ttf.h>
 
 #include "SDL2/SDL.h"
 #include "SDL2/SDL_image.h"
@@ -9,16 +14,19 @@
 #include "Sprites/Block.h"
 #include "Sprites/Sprite.h"
 #include "DataStructures/Utilities.h"
+#include "Conectividad/Ssocket.h"
 #include "JsonBuilder/JsonConstructor.h"
+#include "Conectividad/Connection.h"
 
 
 int globalTime = 0, border = 10, speed = 1;
-bool servidor = true;
+bool isServer = true;
 
 void draw(SDL_Renderer *renderer, Player *pl,
                     struct LinkedList *aliens,
                     struct LinkedList *bullets,
-                    struct LinkedList *shields) {
+                    struct LinkedList *shields,
+                    SDL_Texture* typeText) {
 
     SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);
 
@@ -32,7 +40,7 @@ void draw(SDL_Renderer *renderer, Player *pl,
     SDL_RenderCopyEx(renderer, pl->sheet, &srcRect, &rect, 0, NULL, 0);
 
     //Los Aliens
-    if (servidor)
+    if (!isServer)
         changeSpriteAliens(aliens, &globalTime);
     for (int i = 0; i < aliens->size; ++i) {
         struct Alien *tmp = *(struct Alien **) get(aliens, i);
@@ -43,7 +51,7 @@ void draw(SDL_Renderer *renderer, Player *pl,
 
     //Las Balas del alien y jugador
     if (bullets->size > 0) {
-        if (servidor)
+        if (!isServer)
             changeSpriteBullets(bullets, &globalTime);
         for (int j = 0; j < length(bullets); ++j) {
             struct Bullet *tmp = *(struct Bullet **) get(bullets, j);
@@ -55,8 +63,12 @@ void draw(SDL_Renderer *renderer, Player *pl,
         }
     }
 
-    //Dibuja bloques
+    if (!isServer) {
+        SDL_Rect Message_rect = {0, 0, 100, 50};
+        SDL_RenderCopy(renderer, typeText, NULL, &Message_rect);
+    }
 
+    //Dibuja bloques
     SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
 
     //Dibuja los bloques del escudo
@@ -80,7 +92,8 @@ void draw(SDL_Renderer *renderer, Player *pl,
 void updateServer(Player *pl, struct LinkedList *aliens,
                   struct LinkedList *bullets,
                   struct LinkedList *shields,
-                  SDL_Renderer *renderer) {
+                  SDL_Renderer *renderer,
+                  const char *buffer) {
 
     int goDown = 0;
 
@@ -144,6 +157,124 @@ void updateServer(Player *pl, struct LinkedList *aliens,
         searchCollision(bullets, shields);
     }
 }
+
+void updateClient(Player *pl, struct LinkedList *aliens,
+                    struct LinkedList *bullets,
+                    struct LinkedList *shields,
+                    SDL_Renderer *renderer,
+                    const char *buffer) {
+
+    //Json---------------------------------------------
+    struct json_object *parsed_json;
+    struct json_object *jugador;
+    struct json_object *temp_jug;
+    struct json_object *balas;
+    struct json_object *bala;
+    struct json_object *extraterrestres;
+    struct json_object *extraterrestre;
+    struct json_object *escudos;
+    struct json_object *escudo;
+
+    parsed_json = json_tokener_parse(buffer);
+
+    json_object_object_get_ex(parsed_json,"Player", &jugador);
+    json_object_object_get_ex(parsed_json,"Bullets", &balas);
+    json_object_object_get_ex(parsed_json,"Aliens", &extraterrestres);
+    json_object_object_get_ex(parsed_json,"Shields", &escudos);
+    jugador = json_object_object_get(parsed_json,"Player");
+
+    json_object_object_get_ex(jugador,"x",&temp_jug);
+    pl->x = json_object_get_int(temp_jug);
+    json_object_object_get_ex(jugador,"y",&temp_jug);
+    pl->y = json_object_get_int(temp_jug);
+    json_object_object_get_ex(jugador,"w",&temp_jug);
+    pl->width = json_object_get_int(temp_jug);
+    json_object_object_get_ex(jugador,"h",&temp_jug);
+    pl->height = json_object_get_int(temp_jug);
+    json_object_object_get_ex(jugador,"cSpr",&temp_jug);
+    pl->currentSprite = json_object_get_int(temp_jug);
+    json_object_object_get_ex(jugador,"time",&temp_jug);
+    pl->time = json_object_get_int(temp_jug);
+    json_object_object_get_ex(jugador,"cooldown",&temp_jug);
+    pl->cooldown = json_object_get_int(temp_jug);
+
+
+    int numBalas = json_object_array_length(balas);
+    printf("Numero de Balas:  %i\n",numBalas);
+    clear_list(bullets);
+    for (int i = 0; i < numBalas; i++) {
+        bala = json_object_array_get_idx(balas, i);
+        struct json_object *temp_bala;
+        struct Bullet *tmp = (struct Bullet *) malloc(sizeof(struct Bullet));
+        json_object_object_get_ex(bala, "x", &temp_bala);
+        tmp->x = json_object_get_int(temp_bala);
+        json_object_object_get_ex(bala, "y", &temp_bala);
+        tmp->y = json_object_get_int(temp_bala);
+        json_object_object_get_ex(bala, "w", &temp_bala);
+        tmp->width = json_object_get_int(temp_bala);
+        json_object_object_get_ex(bala, "h", &temp_bala);
+        tmp->height = json_object_get_int(temp_bala);
+        json_object_object_get_ex(bala, "cSpr", &temp_bala);
+        tmp->currentSprite = json_object_get_int(temp_bala);
+        json_object_object_get_ex(bala, "dir", &temp_bala);
+        tmp->direction = json_object_get_int(temp_bala);
+        SDL_Surface *sheet = getBulletImage(tmp->direction);
+        tmp->sheet = SDL_CreateTextureFromSurface(renderer, sheet);
+        SDL_FreeSurface(sheet);
+        add(bullets, &tmp);
+    }
+
+    int numAliens = json_object_array_length(extraterrestres);
+    printf("Numero de Aliens:  %i\n",numAliens);
+    clear_list(aliens);
+    for (int i = 0; i < numAliens; i++) {
+        extraterrestre = json_object_array_get_idx(extraterrestres, i);
+        struct json_object *temp_alien;
+        struct Alien *tmp = (struct Alien *) malloc(sizeof(struct Alien));
+        json_object_object_get_ex(extraterrestre, "x", &temp_alien);
+        tmp->x = json_object_get_int(temp_alien);
+        json_object_object_get_ex(extraterrestre, "y", &temp_alien);
+        tmp->y = json_object_get_int(temp_alien);
+        json_object_object_get_ex(extraterrestre, "w", &temp_alien);
+        tmp->width = json_object_get_int(temp_alien);
+        json_object_object_get_ex(extraterrestre, "h", &temp_alien);
+        tmp->height = json_object_get_int(temp_alien);
+        json_object_object_get_ex(extraterrestre, "row", &temp_alien);
+        tmp->row = json_object_get_int(temp_alien);
+        json_object_object_get_ex(extraterrestre, "ind", &temp_alien);
+        tmp->index = json_object_get_int(temp_alien);
+        json_object_object_get_ex(extraterrestre, "cSpr", &temp_alien);
+        tmp->currentSprite = json_object_get_int(temp_alien);
+        SDL_Surface *sheet = getAlienImage(tmp->row);
+        tmp->sheet = SDL_CreateTextureFromSurface(renderer, sheet);
+        SDL_FreeSurface(sheet);
+        add(aliens, &tmp);
+    }
+
+    //Leer
+    json_object *blockJ, *shieldsArr, *blockArr;
+
+    for (int i = 0; i < json_object_array_length(escudos); ++i) {
+        shieldsArr = json_object_array_get_idx(escudos, i);
+        struct Block *tmp = *(struct Block **) get(shields, i);
+
+        json_object_object_get_ex( shieldsArr, "Block", &blockJ );
+
+        for (int j = 0; j < json_object_array_length(blockJ); ++j) {
+            blockArr = json_object_array_get_idx(blockJ, j);
+
+            json_object_object_foreach(blockArr, key, val) {
+                const char *row;
+                row = json_object_get_string(val);
+                for(int k = 0; k < strlen(row); k++){
+                    tmp->state[j][k] = row[k] - '0';
+                }
+            }
+        }
+    }
+
+}
+
 
 int eventPoll(Player *pl, int dx, struct LinkedList *bullets, SDL_Renderer * renderer) {
     int done = 0;
@@ -214,24 +345,15 @@ int main(int argc, char* args[]) {
     createList(shields, sizeof(struct Block *), free_block);
     generateShields(shields);
 
-    addBulletPlayer(bullets, &pl, renderer);
-
-    json_object *jobj = json_object_new_object();
-    //aliensJson(aliens, jobj);
-    //blocksJson(shields, jobj);
-    //bulletsJson(bullets, jobj);
-
-    playerJson(&pl, jobj);
-    speedJson(speed, jobj);
-
     int done = 0;
 
-    while(done != 1) {
-
-        updateServer(&pl, aliens, bullets, shields, renderer);
-        draw(renderer, &pl, aliens, bullets, shields);
-        done = eventPoll(&pl, 0, bullets, renderer);
-        SDL_Delay(50);
+    isServer = false;
+    //Servidor
+    if (isServer) {
+        connect_server(updateServer, updateClient, NULL, draw, &pl, globalTime, aliens, bullets, shields, renderer);
+    }
+    else {
+        connect_client(updateClient, eventPoll, draw, &pl, globalTime, aliens, bullets, shields, renderer);
     }
 
     for (int i = 0; i < 4; ++i) {
@@ -248,30 +370,38 @@ int main(int argc, char* args[]) {
 }
 
 int list_example(int argc, char* args[]) {
-    struct LinkedList *list = (struct LinkedList *) malloc(sizeof(struct LinkedList));
-    createList(list, sizeof(int), NULL);
+//    struct LinkedList *list = (struct LinkedList *) malloc(sizeof(struct LinkedList));
+//    createList(list, sizeof(int), NULL);
+//
+//    for (int i = 0; i < 6; ++i) {
+//        add(list, &i);
+//    }
+//
+//    //delete_node(&list, 4);
+//
+//    for (int j = 0; j < length(list); ++j) {
+//        printf("getting: %i\n", *(int *) get(list, j));
+//    }
+//
+//    clear_list(list);
+//
+//    for (int i = 4; i < 8; ++i) {
+//        add(list, &i);
+//    }
+//
+//    for (int j = 0; j < length(list); ++j) {
+//        printf("getting: %i\n", *(int *) get(list, j));
+//    }
+//
+//    list_destroy(list);
 
-    for (int i = 0; i < 6; ++i) {
-        add(list, &i);
+    int len = strlen("F");
+    char largo[4];
+
+    sprintf(largo, "%d", len);
+
+    for (int i = 0; i < strlen(largo); ++i) {
+        printf("%c", largo[i]);
     }
-
-    //delete_node(&list, 4);
-
-    for (int j = 0; j < length(list); ++j) {
-        printf("getting: %i\n", *(int *) get(list, j));
-    }
-
-    clear_list(list);
-
-    for (int i = 4; i < 8; ++i) {
-        add(list, &i);
-    }
-
-    for (int j = 0; j < length(list); ++j) {
-        printf("getting: %i\n", *(int *) get(list, j));
-    }
-
-    list_destroy(list);
-
     return 0;
 }
