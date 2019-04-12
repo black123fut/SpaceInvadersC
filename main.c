@@ -345,9 +345,7 @@ int main(int argc, char* args[]) {
     createList(shields, sizeof(struct Block *), free_block);
     generateShields(shields);
 
-    int done = 0;
-
-    isServer = false;
+    isServer = true;
     //Servidor
     if (isServer) {
         connect_server(updateServer, updateClient, NULL, draw, &pl, globalTime, aliens, bullets, shields, renderer);
@@ -370,38 +368,29 @@ int main(int argc, char* args[]) {
 }
 
 int list_example(int argc, char* args[]) {
-//    struct LinkedList *list = (struct LinkedList *) malloc(sizeof(struct LinkedList));
-//    createList(list, sizeof(int), NULL);
-//
-//    for (int i = 0; i < 6; ++i) {
-//        add(list, &i);
-//    }
-//
-//    //delete_node(&list, 4);
-//
-//    for (int j = 0; j < length(list); ++j) {
-//        printf("getting: %i\n", *(int *) get(list, j));
-//    }
-//
-//    clear_list(list);
-//
-//    for (int i = 4; i < 8; ++i) {
-//        add(list, &i);
-//    }
-//
-//    for (int j = 0; j < length(list); ++j) {
-//        printf("getting: %i\n", *(int *) get(list, j));
-//    }
-//
-//    list_destroy(list);
+    struct LinkedList *list = (struct LinkedList *) malloc(sizeof(struct LinkedList));
+    createList(list, sizeof(int), NULL);
 
-    int len = strlen("F");
-    char largo[4];
-
-    sprintf(largo, "%d", len);
-
-    for (int i = 0; i < strlen(largo); ++i) {
-        printf("%c", largo[i]);
+    for (int i = 0; i < 6; ++i) {
+        add(list, &i);
     }
+
+    //delete_node(&list, 4);
+
+    for (int j = 0; j < length(list); ++j) {
+        printf("getting: %i\n", *(int *) get(list, j));
+    }
+
+    clear_list(list);
+
+    for (int i = 4; i < 8; ++i) {
+        add(list, &i);
+    }
+
+    for (int j = 0; j < length(list); ++j) {
+        printf("getting: %i\n", *(int *) get(list, j));
+    }
+
+    list_destroy(list);
     return 0;
 }
