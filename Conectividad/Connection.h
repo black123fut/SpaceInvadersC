@@ -37,32 +37,14 @@ struct client_info {
     char ip[INET_ADDRSTRLEN];
 };
 
-//struct server_functions {
-//    updateFunction updateServer;
-//    updateFunction updateClient;
-//    eventPollFunction eventPoll;
-//    drawFunction draw;
-//    Player *pl;
-//    int speed;
-//    struct LinkedList *aliens;
-//    struct LinkedList *bullets;
-//    struct LinkedList *shields;
-//    SDL_Renderer *renderer;
-//};
-
-//void *runGame();
-
-//void *sendtoall(void *sock);
-//
-//int connect_server(updateFunction updateServer,
-//                   updateFunction updateClient,
-//                    eventPollFunction eventPoll,
-//                    drawFunction draw,
-//                    Player *pl, int speed,
-//                    struct LinkedList *aliens,
-//                    struct LinkedList *bullets,
-//                    struct LinkedList *shields,
-//                    SDL_Renderer *renderer);
+int connect_observer(updateFunction updateClient,
+                     eventPollFunction eventPoll,
+                     drawFunction draw,
+                     Player *pl, int speed,
+                     struct LinkedList *aliens,
+                     struct LinkedList *bullets,
+                     struct LinkedList *shields,
+                     SDL_Renderer *renderer, bool *lose);
 
 int connect_client_player(updateFunction updateClient,
                           eventPollFunction eventPoll,
@@ -72,6 +54,6 @@ int connect_client_player(updateFunction updateClient,
                           struct LinkedList *bullets,
                           struct LinkedList *shields,
                           SDL_Renderer *renderer,
-                          int isObserver);
+                          struct game_info *game, bool *lose);
 
 #endif //SPACEINVADERS_CONNECTION_H

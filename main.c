@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <signal.h>
 #include <string.h>
 #include <stdlib.h>
 #include <stdbool.h>
@@ -17,20 +18,27 @@
 #include "Conectividad/Ssocket.h"
 #include "JsonBuilder/JsonConstructor.h"
 #include "Conectividad/Connection.h"
+#include "MenuScene/Menu.h"
 
 
-int globalTime = 0, border = 10, speed = 1, cl_pl = 0;
+int globalTime = 0, border = 10, speed = 1, isObserver;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 const int puerto = 8080;
 Player pl;
+char respaldo[10000];
 struct LinkedList *clients;
 struct LinkedList *aliens;
 struct LinkedList *bullets;
 struct LinkedList *shields;
+struct game_info game;
 SDL_Renderer *renderer;
 
 int n = 0;
-bool isServer = true;
+bool isServer = true, playerConnected = false, serverConnected = false, lose = false;
+
+void handler(int s) {
+    printf("Caught SIGPIPE\n");
+}
 
 void draw(SDL_Renderer *renderer, Player *pl,
           struct LinkedList *aliens,
@@ -38,135 +46,92 @@ void draw(SDL_Renderer *renderer, Player *pl,
           struct LinkedList *shields,
           SDL_Texture* typeText) {
 
-    SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);
+    if (!lose) {
+        SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);
 
-    SDL_RenderClear(renderer);
+        SDL_RenderClear(renderer);
 
-    SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 
-    //El jugador
-    SDL_Rect srcRect = { pl->width * pl->currentSprite, 0, pl->width, pl->height};
-    SDL_Rect rect = { pl->x, pl->y, pl->width, pl->height };
-    SDL_RenderCopyEx(renderer, pl->sheet, &srcRect, &rect, 0, NULL, 0);
+        //El jugador
+        SDL_Rect srcRect = { pl->width * pl->currentSprite, 0, pl->width, pl->height};
+        SDL_Rect rect = { pl->x, pl->y, pl->width, pl->height };
+        SDL_RenderCopyEx(renderer, pl->sheet, &srcRect, &rect, 0, NULL, 0);
 
-    //Los Aliens
-    if (!isServer)
-        changeSpriteAliens(aliens, &globalTime);
-    for (int i = 0; i < aliens->size; ++i) {
-        struct Alien *tmp = *(struct Alien **) get(aliens, i);
-        SDL_Rect alRect = { tmp->width * tmp->currentSprite, 0, tmp->width, tmp->height};
-        SDL_Rect al_rec = { tmp->x, tmp->y, tmp->width, tmp->height };
-        SDL_RenderCopyEx(renderer, tmp->sheet, &alRect, &al_rec, 0, NULL, 0);
-    }
+        //Los Aliens
 
-    //Las Balas del alien y jugador
-    if (bullets->size > 0) {
-        if (!isServer)
-            changeSpriteBullets(bullets, &globalTime);
-        for (int j = 0; j < length(bullets); ++j) {
-            struct Bullet *tmp = *(struct Bullet **) get(bullets, j);
-            if (tmp != NULL) {
-                SDL_Rect alRect = { tmp->width * tmp->currentSprite, 0, tmp->width, tmp->height};
-                SDL_Rect al_rec = { tmp->x, tmp->y, tmp->width, tmp->height };
-                SDL_RenderCopyEx(renderer, tmp->sheet, &alRect, &al_rec, 0, NULL, 0);
-            }
+        for (int i = 0; i < aliens->size; ++i) {
+            struct Alien *tmp = *(struct Alien **) get(aliens, i);
+            SDL_Rect alRect = { tmp->width * tmp->currentSprite, 0, tmp->width, tmp->height};
+            SDL_Rect al_rec = { tmp->x, tmp->y, tmp->width, tmp->height };
+            SDL_RenderCopyEx(renderer, tmp->sheet, &alRect, &al_rec, 0, NULL, 0);
         }
-    }
 
-    //Escribe el texto
-    if (!isServer) {
-        SDL_Rect Message_rect = {0, 0, 200, 50};
-        SDL_RenderCopy(renderer, typeText, NULL, &Message_rect);
-    }
-
-    //Dibuja bloques
-    SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
-
-    //Dibuja los bloques del escudo
-    for (int l = 0; l < shields->size; ++l) {
-        struct Block *tmp = *(struct Block **) get(shields, l);
-        int xPos = 100 + l * (80 + 126);
-
-        for (int i = 0; i < 14; ++i) {
-            for (int j = 0; j < 16; ++j) {
-                if (tmp->state[i][j] != 0) {
-                    SDL_Rect rectM = {xPos + j * 5, 530 + i * 5, 5, 5};
-                    SDL_RenderFillRect(renderer, &rectM);
+        //Las Balas del alien y jugador
+        if (bullets->size > 0) {
+            if (!isServer)
+                changeSpriteBullets(bullets, &globalTime);
+            for (int j = 0; j < length(bullets); ++j) {
+                struct Bullet *tmp = *(struct Bullet **) get(bullets, j);
+                if (tmp != NULL) {
+                    SDL_Rect alRect = { tmp->width * tmp->currentSprite, 0, tmp->width, tmp->height};
+                    SDL_Rect al_rec = { tmp->x, tmp->y, tmp->width, tmp->height };
+                    SDL_RenderCopyEx(renderer, tmp->sheet, &alRect, &al_rec, 0, NULL, 0);
                 }
             }
         }
+
+        //Escribe el texto
+        char scoreT[10];
+        sprintf(scoreT, "Score: %i", game.score);
+        SDL_Texture* scoreText = loadText(renderer, scoreT);
+        SDL_Rect score_rect = {750, 10, 150, 50};
+        SDL_RenderCopy(renderer, scoreText, NULL, &score_rect);
+        SDL_DestroyTexture(scoreText);
+
+        char lifesT[10];
+        sprintf(lifesT, "Vidas: %i", game.lifes);
+        SDL_Texture* lifesText = loadText(renderer, lifesT);
+        SDL_Rect lifes_rect = {550, 10, 150, 50};
+        SDL_RenderCopy(renderer, lifesText, NULL, &lifes_rect);
+        SDL_DestroyTexture(lifesText);
+
+        SDL_Rect Message_rect = {0, 0, 200, 50};
+        SDL_RenderCopy(renderer, typeText, NULL, &Message_rect);
+
+        //Dibuja bloques
+        SDL_SetRenderDrawColor(renderer, 255, 0, 0, 255);
+
+        //Dibuja los bloques del escudo
+        for (int l = 0; l < shields->size; ++l) {
+            struct Block *tmp = *(struct Block **) get(shields, l);
+            int xPos = 100 + l * (80 + 126);
+
+            for (int i = 0; i < 14; ++i) {
+                for (int j = 0; j < 16; ++j) {
+                    if (tmp->state[i][j] != 0) {
+                        SDL_Rect rectM = {xPos + j * 5, 530 + i * 5, 5, 5};
+                        SDL_RenderFillRect(renderer, &rectM);
+                    }
+                }
+            }
+        }
+    }
+    else {
+        SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);
+
+        SDL_RenderClear(renderer);
+
+        SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
+
+        char loseT[] = "You Lose";
+        SDL_Texture* scoreText = loadText(renderer, loseT);
+        SDL_Rect score_rect = {275, 260, 350, 200};
+        SDL_RenderCopy(renderer, scoreText, NULL, &score_rect);
+        SDL_DestroyTexture(scoreText);
     }
 
     SDL_RenderPresent(renderer);
-}
-
-void updateServer(Player *pl, struct LinkedList *aliens,
-                  struct LinkedList *bullets,
-                  struct LinkedList *shields,
-                  SDL_Renderer *renderer,
-                  const char *buffer) {
-
-    int goDown = 0;
-
-    if (pl->cooldown > 0) {
-        pl->cooldown--;
-    }
-
-    //Cuando los aliens tocan los limites de la pantalla
-    if (border >= 265) {
-        goDown = 1;
-        border = 265;
-        speed = abs(speed) * (-1);
-    }
-    else if (border <= 0) {
-        goDown = 1;
-        border = 0;
-        speed = abs(speed);
-    }
-    border += speed;
-
-    //Selecciona uhn alien random para disparar
-    if (globalTime % 50 == 0 && globalTime != 0) {
-        struct Alien *alien = *(struct Alien **) get(aliens, rand() % length(aliens));
-        addBulletAlien(bullets, alien, renderer);
-    }
-
-    //Mueve los aliens
-    for (int i = 0; i < aliens->size; ++i) {
-        struct Alien *tmp = *(struct Alien **) get(aliens, i);
-        tmp->x += speed;
-        tmp->y += 40 * goDown;
-    }
-
-    //Mueve balas y Balas fueras del limite
-    for (int k = 0; k < length(bullets); ++k) {
-        struct Bullet *tmp = *(struct Bullet **) get(bullets, k);
-        tmp->y += 15 * tmp->direction;
-
-        if (tmp->y <= 0 || tmp->y >= 730) {
-            delete_node(bullets, k, "Alien Bullet");
-        }
-    }
-
-    //Colisiones
-    if (bullets->size > 0) {
-        for (int l = 0; l < aliens->size; ++l) {
-            struct Alien *alientmp = *(struct Alien **) get(aliens, l);
-            for (int i = 0; i < length(bullets); ++i) {
-
-                struct Bullet *bullettmp = *(struct Bullet **) get(bullets, i);
-                if (bullettmp->direction == -1 && checkCollision(bullettmp, alientmp)) {
-                    delete_node(bullets, i, "Player Bullet");
-                    delete_node(aliens, l, "Alien");
-                }
-            }
-        }
-    }
-
-    //Destruccion de los escudos
-    if (bullets->size > 0) {
-        searchCollision(bullets, shields);
-    }
 }
 
 void updateClient(Player *pl, struct LinkedList *aliens,
@@ -175,6 +140,7 @@ void updateClient(Player *pl, struct LinkedList *aliens,
                   SDL_Renderer *renderer,
                   const char *buffer) {
 
+    int typeRes;
     //Json---------------------------------------------
     struct json_object *parsed_json;
     struct json_object *tipo;
@@ -185,20 +151,34 @@ void updateClient(Player *pl, struct LinkedList *aliens,
     struct json_object *extraterrestres;
     struct json_object *extraterrestre;
     struct json_object *escudos;
-    struct json_object *escudo;
+    struct json_object *score;
+    struct json_object *vidas;
+    struct json_object *state;
 
     parsed_json = json_tokener_parse(buffer);
 
-    json_object_object_get_ex(parsed_json,"Player", &jugador);
-    json_object_object_get_ex(parsed_json,"Bullets", &balas);
-    json_object_object_get_ex(parsed_json,"Aliens", &extraterrestres);
-    json_object_object_get_ex(parsed_json,"Shields", &escudos);
-    jugador = json_object_object_get(parsed_json,"Player");
+    if (parsed_json == NULL) {
+        typeRes = 1;
+    }
+    else {
+        json_object_object_get_ex(parsed_json,"Client", &tipo);
+        printf("\nTipo de cliente: %i\n", typeRes);
 
-    json_object_object_get_ex(parsed_json,"Client", &tipo);
-    int typeRes = json_object_get_int(tipo);
+        json_object_object_get_ex(parsed_json,"Player", &jugador);
+        json_object_object_get_ex(parsed_json,"Bullets", &balas);
+        json_object_object_get_ex(parsed_json,"Aliens", &extraterrestres);
+        json_object_object_get_ex(parsed_json,"Shields", &escudos);
+        json_object_object_get_ex(parsed_json,"Score", &score);
+        json_object_object_get_ex(parsed_json,"Vidas", &vidas);
+        json_object_object_get_ex(parsed_json,"State", &state);
 
-    if (typeRes == 0) {
+        jugador = json_object_object_get(parsed_json,"Player");
+
+        game.score = json_object_get_int(score);
+        game.lifes = json_object_get_int(vidas);
+
+        lose = json_object_get_int(state);
+
         json_object_object_get_ex(jugador,"x",&temp_jug);
         pl->x = json_object_get_int(temp_jug);
         json_object_object_get_ex(jugador,"y",&temp_jug);
@@ -289,9 +269,6 @@ void updateClient(Player *pl, struct LinkedList *aliens,
             }
         }
     }
-
-
-
 }
 
 
@@ -327,7 +304,7 @@ int eventPoll(Player *pl, int dx, struct LinkedList *bullets, SDL_Renderer * ren
         //Disparo.
     else if (state[SDL_SCANCODE_Z] && pl->cooldown == 0) {
         addBulletPlayer(bullets, pl, renderer);
-        pl->cooldown = 10;
+        pl->cooldown = 20;
     }
     else {
         dx = 0;
@@ -346,118 +323,6 @@ int eventPoll(Player *pl, int dx, struct LinkedList *bullets, SDL_Renderer * ren
     return done;
 }
 
-void *sendtoall(void *sock) {
-    struct client_info client = *((struct client_info *) sock);
-    char buffer[12000];
-    char len[5];
-    int largo;
-
-    while (1) {
-        printf("\nhola");
-        updateServer(&pl, aliens, bullets, shields, renderer, NULL);
-        //draw(renderer, pl, aliens, bullets, shields, NULL);
-        //done = eventPoll(pl, 0, bullets, renderer);
-
-        ///////////////// Crea el mensaje |||||||||||||||||||||||||
-
-        json_object *jobj = json_object_new_object();
-        playerJson(&pl, jobj);
-        aliensJson(aliens, jobj);
-        bulletsJson(bullets, jobj);
-        blocksJson(shields, jobj);
-        speedJson(speed, jobj);
-
-        // --------------------------------------------------------
-
-        char const *mensaje = json_object_to_json_string(jobj);
-
-        ///////////////// Envia el largo |||||||||||||||||||||
-        int length = strlen(mensaje);
-        printf("\nlargo de de de %i \n", length);
-        char messageLength[5];
-        sprintf(messageLength, "%d", length);
-
-        printf("\nlargo de men: %lu\n", strlen(messageLength));
-
-
-        if (send(client.sockno, messageLength, strlen(messageLength), 0) < 0) {
-            perror("Error al enviar1");
-            continue;
-        }
-
-
-//        send(client.sockno, messageLength, strlen(messageLength), 0);
-        usleep(80);
-        // ---------------------------------------------------
-
-        // Recibe provisional
-        char tesc[3];
-        int test = recv(client.sockno, tesc, 3, 0);
-
-
-        ///////////////// Envia el mensaje Json |||||||||||||||
-        printf("\nMensaje: %s \n largosent: %lu\n", mensaje, strlen(mensaje));
-        if (send(client.sockno, mensaje, strlen(mensaje), 0) < 0) {
-            perror("Error al enviar2");
-            continue;
-        }
-
-//        send(client.sockno,mensaje,strlen(mensaje),0);
-
-        // ----------------------------------------------------
-
-        ///////////////// Recibe el largo |||||||||||||||||||||
-        int bytesRecibidos = recv(client.sockno, len, 5, 0);
-
-        if (bytesRecibidos < 0) {
-            perror("Pus se deconecto we server");
-        }
-
-        len[bytesRecibidos] = '\0';
-        if (strcmp(len, "quit") > 0) {
-            printf("ESC pressed!");
-            break;
-        }
-        //printf("Me llegaron %d bytes con el mensaje: %s \n", bytesRecibidos, len);
-
-        largo = atoi(len);
-        printf("largo: %d\n",largo);
-        // ---------------------------------------------------
-
-        //Envia provicional
-        char test2[3] = "23";
-        send(client.sockno, test2, 3, 0);
-
-        ///////////////// Recibe el mensaje |||||||||||||||||||||||||
-        bytesRecibidos = recv(client.sockno, buffer, largo, 0);
-        if (bytesRecibidos < 0) {
-            perror("Pus se deconecto we cliente1");
-            break;
-        }
-        buffer[bytesRecibidos] = '\0';
-        if (strcmp(len, "quit") > 0) {
-            printf("ESC pressed!");
-            break;
-        }
-        printf("Me llegaron %d bytes con el mensaje: %s \n", bytesRecibidos, buffer);
-
-        // ----------------------------------------------------------
-
-        updateClient(&pl, aliens, bullets, shields,renderer,buffer);
-        SDL_Delay(50);
-    }
-
-    pthread_mutex_lock(&mutex);
-    printf("%s disconnected\n", client.ip);
-    for (int i = 0; i < length(clients); ++i) {
-        int tmp = *(int *) get(clients, i);
-
-        if (tmp == client.sockno) {
-            delete_node(clients, i, "");
-        }
-    }
-    pthread_mutex_unlock(&mutex);
-}
 
 int main(int argc, char* args[]) {
     SDL_Renderer *renderer = init();
@@ -469,6 +334,21 @@ int main(int argc, char* args[]) {
 
     pl = player;
 
+    int selected = menu(playerConnected, serverConnected, renderer);
+
+    // 0 es Jugador
+    // 1 es obserdavador
+
+    if (selected == 2) {
+        isServer = false;
+        isObserver = 0;
+    }
+    else {
+        isServer = false;
+        isObserver = 1;
+    }
+
+    game = (struct game_info) {3, 0};
     aliens = (struct LinkedList *) malloc(sizeof(struct LinkedList));
     getAliens(renderer, aliens);
 
@@ -479,64 +359,20 @@ int main(int argc, char* args[]) {
     createList(shields, sizeof(struct Block *), free_block);
     generateShields(shields);
 
-    isServer = false;
+    signal(SIGPIPE, handler);
 
-    // 0 es Jugador
-    // 1 es observador
-    int isObserver = 1;
-    //Servidor
-    if (isServer) {
-        struct sockaddr_in my_addr,their_addr;
-        int my_sock;
-        int their_sock;
-        socklen_t their_addr_size;
-        pthread_t sendt,play;
-        struct client_info cl;
-
-        //truepthread_create(&play,NULL,runGame,&cl);
-        clients = (struct LinkedList *) malloc(sizeof(struct LinkedList));
-        createList(clients, sizeof(int), NULL);
-
-        char ip[INET_ADDRSTRLEN];
-
-        my_sock = openSocket();
-        memset(my_addr.sin_zero,'\0',sizeof(my_addr.sin_zero));
-        my_addr.sin_family = AF_INET;
-        my_addr.sin_port = htons(puerto);
-        my_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
-        their_addr_size = sizeof(their_addr);
-
-        if(bind(my_sock,(struct sockaddr *)&my_addr,sizeof(my_addr)) != 0) {
-            perror("binding unsuccessful");
-            exit(1);
+    //Cliente Observador
+    if (isObserver == 1) {
+        pthread_mutex_lock(&mutex);
+        connect_observer(updateClient, NULL, draw, &pl, globalTime, aliens, bullets, shields, renderer, &lose);
+        pthread_mutex_unlock(&mutex);
         }
-
-        if(listen(my_sock,5) != 0) {
-            perror("listening unsuccessful");
-            exit(1);
-        }
-
-        while(1) {
-            printf("HOLO HOLO HOLO");
-            if((their_sock = accept(my_sock,(struct sockaddr *)&their_addr,&their_addr_size)) < 0) {
-                perror("accept unsuccessful");
-                exit(1);
-            }
-            pthread_mutex_lock(&mutex);
-            inet_ntop(AF_INET, (struct sockaddr *)&their_addr, ip, INET_ADDRSTRLEN);
-            printf("%s connected\n",ip);
-            cl.sockno = their_sock;
-            strcpy(cl.ip,ip);
-            add(clients, &their_sock);
-            n++;
-            pthread_create(&sendt,NULL,sendtoall,&cl);
-            pthread_mutex_unlock(&mutex);
-        }    }
-        //Cliente Jugador
+    //Cliente Jugador
     else {
-        if (!isObserver)
-            cl_pl = 1;
-        connect_client_player(updateClient, eventPoll, draw, &pl, globalTime, aliens, bullets, shields, renderer, isObserver);
+        playerConnected = true;
+        pthread_mutex_lock(&mutex);
+        connect_client_player(updateClient, eventPoll, draw, &pl, globalTime, aliens, bullets, shields, renderer, &game, &lose);
+        pthread_mutex_unlock(&mutex);
     }
 
     for (int i = 0; i < 4; ++i) {
@@ -549,33 +385,5 @@ int main(int argc, char* args[]) {
     SDL_DestroyRenderer(renderer);
     SDL_Quit();
 
-    return 0;
-}
-
-int list_example(int argc, char* args[]) {
-    struct LinkedList *list = (struct LinkedList *) malloc(sizeof(struct LinkedList));
-    createList(list, sizeof(int), NULL);
-
-    for (int i = 0; i < 6; ++i) {
-        add(list, &i);
-    }
-
-    //delete_node(&list, 4);
-
-    for (int j = 0; j < length(list); ++j) {
-        printf("getting: %i\n", *(int *) get(list, j));
-    }
-
-    clear_list(list);
-
-    for (int i = 4; i < 8; ++i) {
-        add(list, &i);
-    }
-
-    for (int j = 0; j < length(list); ++j) {
-        printf("getting: %i\n", *(int *) get(list, j));
-    }
-
-    list_destroy(list);
     return 0;
 }
