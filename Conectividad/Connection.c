@@ -1,5 +1,8 @@
 #include "Connection.h"
 
+/**
+ * Recibe los datos del servidor para ser observados en la ventana
+ */
 int connect_observer(updateFunction updateClient,
                      eventPollFunction eventPoll,
                      drawFunction draw,
@@ -72,6 +75,8 @@ int connect_observer(updateFunction updateClient,
             perror("Pus se deconecto we cliente1");
             continue;
         }
+
+
         buffer[bytesRecibidos] = '\0';
         printf("Me llegaron %d bytes con el mensaje: %s \n", bytesRecibidos, buffer);
         usleep(50);
@@ -88,6 +93,9 @@ int connect_observer(updateFunction updateClient,
     }
 }
 
+/**
+ * Recibe la informacion de la partida del servidor y ademas permite controlar la nave
+ */
 int connect_client_player(updateFunction updateClient,
                           eventPollFunction eventPoll,
                           drawFunction draw,

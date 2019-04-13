@@ -8,6 +8,10 @@ void free_rect(void *data) {
     free(*(struct SDL_Rect **) data);
 }
 
+/**
+ * Genera los escudos.
+ * @param shields
+ */
 void generateShields(struct LinkedList *shields) {
     for (int i = 0; i < 4; ++i) {
         struct Block *block = (struct Block *) malloc(sizeof(struct Block));
@@ -20,6 +24,9 @@ void generateShields(struct LinkedList *shields) {
     //printf("\nsize shields: %i, primero: %i\n", shields->size, coso->shield->size);
 }
 
+/**
+ * Crea un bloque.
+ */
 void createBlock(struct Block *block, int xPos) {
     buildBlockMatrix(block);
     printf("Entro :)");
@@ -45,40 +52,9 @@ void createBlock(struct Block *block, int xPos) {
 //    printf("size: %i", block->shield->size);
 }
 
-bool collision(struct SDL_Rect *rect, struct Bullet *bullet) {
-    return
-            (bullet->x) < (rect->x + rect->w) &&
-            (bullet->y) < (rect->y + rect->h) &&
-            (bullet->x + bullet->width) > (rect->x) &&
-            (bullet->y + bullet->height) > (rect->y);
-}
-
-void searchCollision(struct LinkedList *bullets, struct LinkedList *shields) {
-    if (bullets->size > 0) {
-        for (int i = 0; i < length(shields); ++i) {
-            struct Block *tmp = *(struct Block **) get(shields, i);
-
-            for (int j = 0; j< length(tmp->shield); ++j) {
-                struct SpaceRect *srect = *(struct SpaceRect **) get(tmp->shield, j);
-
-                for (int k = 0; k < length(bullets); ++k) {
-                    struct Bullet *tmpbullet = *(struct Bullet **) get(bullets, k);
-                    if (collision(srect->rect, tmpbullet)) {
-                        deleteRect(tmp, srect->i, srect->j);
-                        delete_node(tmp->shield, j, "Rect");
-                        delete_node(bullets, k, "Bullet");
-                        break;
-                    }
-                }
-            }
-        }
-    }
-}
-
-void deleteRect(struct Block *block, int i, int j) {
-    block->state[i][j] = 0;
-}
-
+/**
+ * Crea la forma del bloque.
+ */
 void buildBlockMatrix(struct Block *block) {
     int tmp[14][16] = {{0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0},
                        {0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0, 0, 0},

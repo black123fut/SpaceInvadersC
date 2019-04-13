@@ -25,7 +25,6 @@ int globalTime = 0, border = 10, speed = 1, isObserver;
 pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
 const int puerto = 8080;
 Player pl;
-char respaldo[10000];
 struct LinkedList *clients;
 struct LinkedList *aliens;
 struct LinkedList *bullets;
@@ -40,16 +39,20 @@ void handler(int s) {
     printf("Caught SIGPIPE\n");
 }
 
+/**
+ * Funcion que dibuja la ventana con las animaciones
+ */
 void draw(SDL_Renderer *renderer, Player *pl,
           struct LinkedList *aliens,
           struct LinkedList *bullets,
           struct LinkedList *shields,
           SDL_Texture* typeText) {
 
+    //Verifica si perdio, si no sigue dibujando el juego
     if (!lose) {
         SDL_SetRenderDrawColor(renderer, 20, 20, 20, 255);
 
-        SDL_RenderClear(renderer);
+        SDL_RenderClear(renderer); //Limpiala pantalla
 
         SDL_SetRenderDrawColor(renderer, 255, 255, 255, 255);
 
@@ -71,6 +74,7 @@ void draw(SDL_Renderer *renderer, Player *pl,
         if (bullets->size > 0) {
             if (!isServer)
                 changeSpriteBullets(bullets, &globalTime);
+
             for (int j = 0; j < length(bullets); ++j) {
                 struct Bullet *tmp = *(struct Bullet **) get(bullets, j);
                 if (tmp != NULL) {
@@ -89,6 +93,7 @@ void draw(SDL_Renderer *renderer, Player *pl,
         SDL_RenderCopy(renderer, scoreText, NULL, &score_rect);
         SDL_DestroyTexture(scoreText);
 
+        //Escribr las vida en pantalla
         char lifesT[10];
         sprintf(lifesT, "Vidas: %i", game.lifes);
         SDL_Texture* lifesText = loadText(renderer, lifesT);
@@ -134,6 +139,9 @@ void draw(SDL_Renderer *renderer, Player *pl,
     SDL_RenderPresent(renderer);
 }
 
+/**
+ * Actualiza los datos del cliente con los del servidor
+ */
 void updateClient(Player *pl, struct LinkedList *aliens,
                   struct LinkedList *bullets,
                   struct LinkedList *shields,
@@ -161,8 +169,8 @@ void updateClient(Player *pl, struct LinkedList *aliens,
         typeRes = 1;
     }
     else {
+        //Prepara la infomacion en las variables
         json_object_object_get_ex(parsed_json,"Client", &tipo);
-        printf("\nTipo de cliente: %i\n", typeRes);
 
         json_object_object_get_ex(parsed_json,"Player", &jugador);
         json_object_object_get_ex(parsed_json,"Bullets", &balas);
@@ -172,6 +180,8 @@ void updateClient(Player *pl, struct LinkedList *aliens,
         json_object_object_get_ex(parsed_json,"Vidas", &vidas);
         json_object_object_get_ex(parsed_json,"State", &state);
 
+
+        //Pasa la informacion del Json a las varibles del juego.
         jugador = json_object_object_get(parsed_json,"Player");
 
         game.score = json_object_get_int(score);
@@ -247,7 +257,7 @@ void updateClient(Player *pl, struct LinkedList *aliens,
             add(aliens, &tmp);
         }
 
-        //Leer
+        //Lee los escudos del json
         json_object *blockJ, *shieldsArr, *blockArr;
 
         for (int i = 0; i < json_object_array_length(escudos); ++i) {
@@ -271,7 +281,9 @@ void updateClient(Player *pl, struct LinkedList *aliens,
     }
 }
 
-
+/**
+ *  Mueve el jugador y ademas hace que dispare
+ */
 int eventPoll(Player *pl, int dx, struct LinkedList *bullets, SDL_Renderer * renderer) {
     int done = 0;
     SDL_Event e;

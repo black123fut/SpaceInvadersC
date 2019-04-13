@@ -12,6 +12,9 @@ void free_bullet(void *data) {
     free(*(struct Bullet **) data);
 }
 
+/**
+ * Setea los atributos a cada Alien de la lista.
+ */
 void setAttributes(struct Alien *alien, int column, int index, int row) {
     alien->y = 75 + row * 32;
 
@@ -34,6 +37,9 @@ void setAttributes(struct Alien *alien, int column, int index, int row) {
     alien->row = row;
 }
 
+/**
+ * Obtiene la imagen que le corresponda al alien.
+ */
 SDL_Surface *getAlienImage(int row) {
     if (row == 0) {
         return loadImage("../../resources/SquidAlien.png");
@@ -46,6 +52,9 @@ SDL_Surface *getAlienImage(int row) {
     }
 }
 
+/**
+ * Obtiene la imagen que le corresponda a la bala.
+ */
 SDL_Surface *getBulletImage(int dir) {
     if (dir == -1) {
         return loadImage("../../resources/Bullet.png");
@@ -54,6 +63,9 @@ SDL_Surface *getBulletImage(int dir) {
     }
 }
 
+/**
+ * Llena la lista con todos los aliens del nivel.
+ */
 void getAliens(SDL_Renderer *renderer, struct LinkedList *aliens) {
     int row = 0, column = 0, index = 0;
     createList(aliens, sizeof(struct Alien *), free_alien);
@@ -76,16 +88,9 @@ void getAliens(SDL_Renderer *renderer, struct LinkedList *aliens) {
     printf("LLEgue");
 }
 
-bool checkCollision(struct Bullet *bullet, struct Alien* alien) {
-    return
-            (bullet->x) < (alien->x + alien->width) &&
-            (bullet->y) < (alien->y + alien->height) &&
-            (bullet->x + bullet->width) > (alien->x) &&
-            (bullet->y + bullet->height) > (alien->y);
-}
-
-
-
+/**
+ * Iniciliza el SDL
+ */
 SDL_Renderer *init() {
     int width = 900;
     int height = 720;
@@ -132,6 +137,9 @@ SDL_Renderer *init() {
     return renderer;
 }
 
+/**
+ * Agrega una bala del jugaodor a la lista de balas.
+ */
 void addBulletPlayer(struct LinkedList *bullets, Player *pl, SDL_Renderer * renderer) {
     struct Bullet *bullet = (struct Bullet *) malloc(sizeof(struct Bullet));
     bullet->y = pl->y + 10;
@@ -145,6 +153,9 @@ void addBulletPlayer(struct LinkedList *bullets, Player *pl, SDL_Renderer * rend
     add(bullets , &bullet);
 }
 
+/**
+ * Agrega una bala de los aliens a la lista de balas.
+ */
 void addBulletAlien(struct LinkedList *bullets, struct Alien *alien, SDL_Renderer * renderer) {
     struct Bullet *bullet = (struct Bullet *) malloc(sizeof(struct Bullet));
     bullet->y = alien->y - 5;
@@ -158,6 +169,9 @@ void addBulletAlien(struct LinkedList *bullets, struct Alien *alien, SDL_Rendere
     add(bullets , &bullet);
 }
 
+/**
+ * Carga un texto.
+ */
 SDL_Texture *loadText(SDL_Renderer *renderer, char* text) {
     TTF_Font* Sans = TTF_OpenFont("../../resources/ostrich-regular.ttf", 24);
     if( Sans == NULL ) {
@@ -169,6 +183,9 @@ SDL_Texture *loadText(SDL_Renderer *renderer, char* text) {
     return Message;
 }
 
+/**
+ * Carga una imagen.
+ */
 SDL_Surface *loadImage(char* path) {
     SDL_Surface *sheet = IMG_Load(path);
     if(!sheet) {

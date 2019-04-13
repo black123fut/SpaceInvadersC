@@ -6,6 +6,9 @@
 
 #include "LinkedList.h"
 
+/**
+ * Crea la lista con el espacio que deba reservar por nodo.
+ */
 void createList(struct LinkedList *list, int elementSize, freeFunction fn) {
     assert(elementSize > 0);
     list->head = NULL;
@@ -14,6 +17,9 @@ void createList(struct LinkedList *list, int elementSize, freeFunction fn) {
     list->size = 0;
 }
 
+/**
+ * Agrega un dato a un nodo en la lista.
+ */
 void add(struct LinkedList *list, void *data) {
     Node *tmp = (Node *) malloc(sizeof(Node));
     tmp->data = malloc(sizeof(list->elementSize));
@@ -35,6 +41,9 @@ void add(struct LinkedList *list, void *data) {
     list->size++;
 }
 
+/**
+ * Elimina un nodo de la lista
+ */
 void delete_node(struct LinkedList *list, int index, char *tag) {
     int counter = 0;
     Node *tmp = list->head;
@@ -42,6 +51,7 @@ void delete_node(struct LinkedList *list, int index, char *tag) {
     if (list->head == NULL) {
         return;
     }
+    //Elimina el head
     if (index == 0) {
         list->head = list->head->next;
         if(list->freeFn) {
@@ -49,10 +59,12 @@ void delete_node(struct LinkedList *list, int index, char *tag) {
         }
         free(tmp->data);
         free(tmp);
+        tmp = NULL;
         list->size--;
         return;
     }
     counter++;
+    //Elimina cualquier otro nodo
     while(tmp->next != NULL) {
         if (counter == index) {
 
@@ -63,6 +75,7 @@ void delete_node(struct LinkedList *list, int index, char *tag) {
             }
             free(tmpp->data);
             free(tmpp);
+            tmpp = NULL;
             list->size--;
             return;
         }
@@ -73,6 +86,9 @@ void delete_node(struct LinkedList *list, int index, char *tag) {
     }
 }
 
+/**
+ * Obtiene un dato de la lista.
+ */
 void *get(struct LinkedList *list, int index) {
     if (list->size > index) {
         Node *tmp = list->head;
@@ -92,6 +108,10 @@ int length(struct LinkedList *list) {
     return list->size;
 }
 
+/**
+ * Elimina todos los nodos de la lista
+ * @param list
+ */
 void clear_list(struct LinkedList *list) {
     int size = length(list);
     for (int i = 0; i < size; ++i) {
@@ -99,6 +119,10 @@ void clear_list(struct LinkedList *list) {
     }
 }
 
+/**
+ * Destruye la lista.
+ * @param list
+ */
 void list_destroy(struct LinkedList *list)
 {
     Node *current;
@@ -111,5 +135,6 @@ void list_destroy(struct LinkedList *list)
         }
         free(current->data);
         free(current);
+        current = NULL;
     }
 }

@@ -1,5 +1,16 @@
 #include "JsonConstructor.h"
 
+
+/**
+ *
+ *
+ * En general todos escriben un Json
+ * de un diferenet objeto.
+ *
+ *
+ */
+
+
 void gameInfoJson(struct game_info *game, json_object *jobj) {
     json_object_object_add(jobj,"Vidas", json_object_new_int(game->lifes));
     json_object_object_add(jobj,"Score", json_object_new_int(game->score));
